@@ -4,23 +4,18 @@ import time
 import emoji
 import json
 from dotenv import load_dotenv
-
-with open('languages.json') as json_file: 
-    languages = json.load(json_file)  
   
-    print("estados unidos:", languages["127482127480"]) 
-    print("suiça:", languages["127464127469"]) 
 
-# Renomeie pra um verbo tipo "filterFlags"
-def emojis_flags_separation(ascii_codes):
+
+def filter_flags(ascii_codes):
     flags = []
     for cod in ascii_codes:
             if cod >= 127462 and cod <= 127487:
                 flags.append(str(cod))
     return flags
 
-# Renomeie pra um verbo tipo "uniteFlags" ou algo nessa linha
-def flags_junction(separated_flags):
+
+def unite_flags(separated_flags):
     united_flags = []
     i = 0
     while i < len(separated_flags)-1:
@@ -29,39 +24,17 @@ def flags_junction(separated_flags):
         i = i + 2
     return united_flags
 
-# def language_flag_relating(final_flags):
-#     language_list = []
-#     for united_cod in final_flags:
-#         if united_cod == "" or united_cod == "":
-#             language_list.append("English")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("French")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Japanese")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Italian")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("German")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Chinese")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Korean")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Spanish")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Norwegian")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Russian")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Danish")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Finnish")
-#         elif united_cod == "" or united_cod == "":
-#             language_list.append("Portuguese")
-#         else:
-#             language_list.append("Undefined")
-#     return language_list()
 
+with open('languages.json') as json_file: 
+    languages = json.load(json_file)  
+
+def language_flag_relate(final_flags):
+    language_list = []
+    for united_cod in final_flags:
+        language_list.append(str(languages[united_cod]))
+    language_list = list(dict.fromkeys(language_list))
+    return language_list
+    
 
 load_dotenv()
 
@@ -74,6 +47,7 @@ auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
 api = tweepy.API(auth)
+
 
 last_id = None
 
@@ -106,13 +80,16 @@ while True:
         converted_to_ascii = [ord(c) for c in emojis]
         print("na ascii        ", converted_to_ascii)
         
-        pure_divided_flags = emojis_flags_separation(converted_to_ascii)
+        pure_divided_flags = filter_flags(converted_to_ascii)
         print("apenas bandeiras", pure_divided_flags)
 
-        flags = flags_junction(pure_divided_flags)
+        flags = unite_flags(pure_divided_flags)
         # Até aqui
 
-        print("bandeiras juntas", flags, "\n")
+        print("bandeiras juntas", flags)
+
+        languages_required = language_flag_relate(flags)
+        print("lista de linguas", languages_required, "\n")
 
         # Loop de cada bandeira
             # Pega idioma daquele país
