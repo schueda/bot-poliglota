@@ -62,49 +62,49 @@ def flags_junction(separated_flags):
 #     return language_list()
 
 
-load_dotenv()
+# load_dotenv()
 
-consumer_key = os.getenv("key")
-consumer_secret = os.getenv("secret")
-access_token = os.getenv("token")
-access_token_secret = os.getenv("token_secret")
+# consumer_key = os.getenv("key")
+# consumer_secret = os.getenv("secret")
+# access_token = os.getenv("token")
+# access_token_secret = os.getenv("token_secret")
 
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_token_secret)
+# auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+# auth.set_access_token(access_token, access_token_secret)
 
-api = tweepy.API(auth)
+# api = tweepy.API(auth)
 
 
-last_id = None
-while True:
+# last_id = None
+# while True:
 
-    if last_id != None:
-        print(f"\n----- Puxando mentions desde {last_id} -----")
-        mentions = api.mentions_timeline(since_id=last_id)
-    else:
-        print("\n\n----- Puxando todas as mentions -----")
-        mentions = api.mentions_timeline()
+#     if last_id != None:
+#         print(f"\n----- Puxando mentions desde {last_id} -----")
+#         mentions = api.mentions_timeline(since_id=last_id)
+#     else:
+#         print("\n\n----- Puxando todas as mentions -----")
+#         mentions = api.mentions_timeline()
    
-    if len(mentions) != 0:
-        last_id = mentions[0].id
+#     if len(mentions) != 0:
+#         last_id = mentions[0].id
 
-    print("\n----- IMPRIMINDO MENTIONS -----")
-    for status in mentions:
-        #print(status.id, status.text)
+#     print("\n----- IMPRIMINDO MENTIONS -----")
+#     for status in mentions:
+#         #print(status.id, status.text)
         
-        decode  = status.text #decode  = status.text.decode('utf-8')
-        allchars = [str for str in decode]
-        emojis = [c for c in allchars if c in emoji.UNICODE_EMOJI]
-        print("símbolo         ", emojis)
+#         decode  = status.text #decode  = status.text.decode('utf-8')
+#         allchars = [str for str in decode]
+#         emojis = [c for c in allchars if c in emoji.UNICODE_EMOJI]
+#         print("símbolo         ", emojis)
         
-        converted_to_ascii = [ord(c) for c in emojis]
-        print("na ascii        ", converted_to_ascii)
+#         converted_to_ascii = [ord(c) for c in emojis]
+#         print("na ascii        ", converted_to_ascii)
         
-        pure_divided_flags = emojis_flags_separation(converted_to_ascii)
-        print("apenas bandeiras", pure_divided_flags)
+#         pure_divided_flags = emojis_flags_separation(converted_to_ascii)
+#         print("apenas bandeiras", pure_divided_flags)
 
-        flags = flags_junction(pure_divided_flags)
-        print("bandeiras juntas", flags, "\n")
+#         flags = flags_junction(pure_divided_flags)
+#         print("bandeiras juntas", flags, "\n")
 
-    time.sleep(10)
+#     time.sleep(10)
 
