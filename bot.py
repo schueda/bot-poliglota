@@ -11,7 +11,7 @@ with open('languages.json') as json_file:
     print("estados unidos:", languages["127482127480"]) 
     print("suiça:", languages["127464127469"]) 
 
-
+# Renomeie pra um verbo tipo "filterFlags"
 def emojis_flags_separation(ascii_codes):
     flags = []
     for cod in ascii_codes:
@@ -19,6 +19,7 @@ def emojis_flags_separation(ascii_codes):
                 flags.append(str(cod))
     return flags
 
+# Renomeie pra um verbo tipo "uniteFlags" ou algo nessa linha
 def flags_junction(separated_flags):
     united_flags = []
     i = 0
@@ -74,10 +75,11 @@ auth.set_access_token(access_token, access_token_secret)
 
 api = tweepy.API(auth)
 
-
 last_id = None
+
 while True:
 
+    ## Transforme em uma função que retorna as mentions
     if last_id != None:
         print(f"\n----- Puxando mentions desde {last_id} -----")
         mentions = api.mentions_timeline(since_id=last_id)
@@ -91,7 +93,11 @@ while True:
     print("\n----- IMPRIMINDO MENTIONS -----")
     for status in mentions:
         #print(status.id, status.text)
+
+        # Adicione uma verificação pra ver se a mention começa com o @ do bot
         
+        ## Transforme em una função que faça esse processo em outro lugar
+        # Daqui
         decode  = status.text #decode  = status.text.decode('utf-8')
         allchars = [str for str in decode]
         emojis = [c for c in allchars if c in emoji.UNICODE_EMOJI]
@@ -104,7 +110,22 @@ while True:
         print("apenas bandeiras", pure_divided_flags)
 
         flags = flags_junction(pure_divided_flags)
+        # Até aqui
+
         print("bandeiras juntas", flags, "\n")
+
+        # Loop de cada bandeira
+            # Pega idioma daquele país
+            # Loop de cada idioma
+                # Verifica se ja existe no buffer
+                    # Caso não, traduz pro idioma
+
+                # Guarda em um buffer (caso a pessoa coloque duas bandeiras de países que falam o mesmo idioma)
+
+                # Tweeta (cuidado com tweets muito longos)
+                
+        # Limpa buffer de idiomas
+
 
     time.sleep(10)
 
