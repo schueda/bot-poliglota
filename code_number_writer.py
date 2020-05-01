@@ -4,17 +4,15 @@ import time
 import emoji
 import json
 from dotenv import load_dotenv
-
+  
 
 
 def get_mentions(id):
     if id != None:
-        print(f"\n----- Puxando mentions desde {id} -----")
         mentions = api.mentions_timeline(since_id=id)
     else:
-        print("\n\n----- Puxando todas as mentions -----")
         mentions = api.mentions_timeline()
-    return mentions  
+    return mentions
 
 
 def filter_flags(ascii_codes):
@@ -46,10 +44,10 @@ def get_flags_from_mention(mention_text):
 
 
 with open('languages.json') as json_file: 
-    languages = json.load(json_file)  
+    languages = json.load(json_file) 
+json_file.close()
 
-
-
+print(languages, "\n")
 
 load_dotenv()
 
@@ -64,33 +62,16 @@ auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
 
-last_id = None
+mentions_list = get_mentions(None)
 
-while True:
+for status in mentions_list:
+    
+    flags_list = get_flags_from_mention(status.text)
+    
+    for number in flags_list:
+        languages.update({number: ["undefined"]})
 
-    mentions_list = get_mentions(last_id)
-   
-    if len(mentions_list) != 0:
-        last_id = mentions_list[0].id
+print(languages)
 
-    print("\n----- IMPRIMINDO MENTIONS -----")
-    for status in mentions_list:
-        print(status.id, status.text)
-
-        # Adicione uma verificação pra ver se a mention começa com o @ do bot
-        
-        # Loop de cada bandeira
-            # Pega idioma daquele país
-            # Loop de cada idioma
-                # Verifica se ja existe no buffer
-                    # Caso não, traduz pro idioma
-
-                # Guarda em um buffer (caso a pessoa coloque duas bandeiras de países que falam o mesmo idioma)
-
-                # Tweeta (cuidado com tweets muito longos)
-                
-        # Limpa buffer de idiomas
-
-
-    time.sleep(10)
-
+with open('languages.json', 'w') as json_file: 
+    json.dump(languages, json_file, indent=4)
