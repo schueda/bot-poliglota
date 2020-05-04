@@ -3,10 +3,13 @@ import os
 import time
 import emoji
 import json
+from googletrans import Translator
+
 from dotenv import load_dotenv
 
+            
 
-
+# Função que puxa as ultimas 20 mentions
 def get_mentions(id):
     
     if id != None:
@@ -19,6 +22,29 @@ def get_mentions(id):
     return mentions  
 
 
+#Função que filtra apenas as mentions que não começam com a tag
+def filter_mentions(not_filtered_mentions):
+    
+    notstarting = []
+    for status in not_filtered_mentions:
+        if  not status.text.lower().startswith("@bot_polilingue"):
+            notstarting.append(status)
+    
+    return notstarting
+
+
+#Função que filtra os emojis do texto e transforma-os em código da ascii
+def filter_emojis(text):
+    
+    decode = text
+    allchars = [str for str in decode]
+    emojis = [c for c in allchars if c in emoji.UNICODE_EMOJI]
+    converted_to_ascii = [ord(c) for c in emojis]
+    
+    return converted_to_ascii
+
+
+# Função que separa as bandeiras dos demais emojis
 def filter_flags(ascii_codes):
     flags = []
     
@@ -29,6 +55,7 @@ def filter_flags(ascii_codes):
     return flags
 
 
+# Função que junta os dois códigos das bandeiras
 def unite_flags(separated_flags):
     united_flags = []
     i = 0
@@ -41,22 +68,26 @@ def unite_flags(separated_flags):
     return united_flags
 
 
+#Função que pega a mention e retorna apenas os códigos das bandeiras dectadas
 def get_flags_from_mention(mention_text):
 
-    decode = mention_text
-    allchars = [str for str in decode]
-    emojis = [c for c in allchars if c in emoji.UNICODE_EMOJI]
-    converted_to_ascii = [ord(c) for c in emojis]
-    pure_divided_flags = filter_flags(converted_to_ascii)
+    emojis_in_ascii = filter_emojis(mention_text)
+    pure_divided_flags = filter_flags(emojis_in_ascii)
     flags = unite_flags(pure_divided_flags)
     
     return flags
 
 
+#Chamada do documento json que relaciona cada código com cada língua
 with open('languages.json') as json_file: 
     languages = json.load(json_file)  
 
-#não sei bem o que fazer aqui ainda
+#Função que relaciona a flag com a lingua
+def get_language(country):
+    return languages[country]
+
+translator = Translator()
+
 
 
 load_dotenv()
@@ -80,32 +111,24 @@ while True:
    
     if len(mentions_list) != 0:
         last_id = mentions_list[0].id
-
-    print("\n----- IMPRIMINDO MENTIONS -----\n")
     
-    print("todas as mentions:")
-    
-    for status in mentions_list:
+    filtered_mentions = filter_mentions(mentions_list)
 
-        print(status.text)
+    for status in filtered_mentions:
+        
+        original_status = api.get_status(status.in_reply_to_status_id)
+        flags = get_flags_from_mention(status.text)
+        
+        buffer = []
+        for flag in flags:
+            language = get_language(flag)
+            
+            translation = translator.translate(original_status.text, dest=language)
 
-    print("\n-------------------------------------------------------------------------------\n")
-    print("ESSAS NÃO PODEM:")
-    for status in mentions_list:
+        
 
-        if status.text.startswith('@_schueda_') or status.text.startswith(' @_Schueda_'):
-            print(status.text)
-            mentions_list.remove(status)
-    print("\n-------------------------------------------------------------------------------\n")
-    
-    print("lista filtrada:")
-    for status in mentions_list:
 
-        print(status.text)
-
-    
-
-        # Adicione uma verificação pra ver se a mention começa com o @ do bot
+        
         
         # Loop de cada bandeira
             # Pega idioma daquele país
