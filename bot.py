@@ -3,11 +3,16 @@ import os
 import time
 import emoji
 import json
+
 from googletrans import Translator
 
 from dotenv import load_dotenv
 
-            
+#Chamada do documento json que relaciona cada código com cada língua
+with open('languages.json') as json_file: 
+    languages = json.load(json_file)  
+
+
 
 # Função que puxa as ultimas 20 mentions
 def get_mentions(id):
@@ -78,16 +83,30 @@ def get_flags_from_mention(mention_text):
     return flags
 
 
-#Chamada do documento json que relaciona cada código com cada língua
-with open('languages.json') as json_file: 
-    languages = json.load(json_file)  
-
 #Função que relaciona a flag com a lingua
 def get_language(country):
     return languages[country]
 
 translator = Translator()
 
+
+# Função que transforma o codigo das bandeiras de volta em emojis
+def emojize_flag_code(flag_code):
+    
+    first_letter_code = flag_code[:int(len(flag_code)/2)]
+    second_letter_code = flag_code[int(len(flag_code)/2):]
+    
+    emojized_first_letter = chr(int(first_letter_code))
+    emojized_second_letter = chr(int(second_letter_code))
+    
+    return emojized_first_letter, emojized_second_letter
+
+
+# Função que remove os emojis do texto
+def remove_emoji(text):
+    return emoji.get_emoji_regexp().sub(r'', text.decode('utf8'))
+
+# ========================================================================================================
 
 
 load_dotenv()
@@ -118,29 +137,37 @@ while True:
         
         original_status = api.get_status(status.in_reply_to_status_id)
         flags = get_flags_from_mention(status.text)
+
+        translation_needed = remove_emoji(original_status.text)
+        print(translation_needed)
+
+        buffer = dict()
         
-        buffer = []
         for flag in flags:
+
             language = get_language(flag)
+            base_language = language[0]
+
+            if base_language in buffer:
+                translation = buffer[base_language]
+            else:
+                translation = translator.translate(translation_needed, dest=base_language)
+                buffer[base_language] = translation.text
             
-            translation = translator.translate(original_status.text, dest=language)
+            first_letter, second_letter = emojize_flag_code(flag)
+            # print(first_letter, second_letter)
+            #tweeta com o emoji de bandeirinha e " "
 
-        
+            if len(language) > 1:
 
-
-        
-        
-        # Loop de cada bandeira
-            # Pega idioma daquele país
-            # Loop de cada idioma
-                # Verifica se ja existe no buffer
-                    # Caso não, traduz pro idioma
-
-                # Guarda em um buffer (caso a pessoa coloque duas bandeiras de países que falam o mesmo idioma)
-
-                # Tweeta (cuidado com tweets muito longos)
-                
-        # Limpa buffer de idiomas
+                for langs in language[1:]:
+                    
+                    if langs in buffer:
+                        translation = buffer[langs]
+                    else:
+                        translation = translator.translate(translation_needed, dest=langs)
+                        buffer[langs] = translation.text
+                    #tweeta em cadeia com o tweet anterior com o emoji da bandeirinha e " "
 
 
     time.sleep(10)
