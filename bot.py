@@ -27,15 +27,16 @@ def get_mentions(id):
     return mentions  
 
 
-#Função que filtra apenas as mentions que não começam com a tag
+#Função que filtra apenas as mentions uteis
 def filter_mentions(not_filtered_mentions):
     
-    notstarting = []
+    filtered = []
     for status in not_filtered_mentions:
-        if  not status.text.lower().startswith("@bot_polilingue"):
-            notstarting.append(status)
-    
-    return notstarting
+        mention_user = api.get_user(status.user.id)
+        if  not mention_user.screen_name == "bot_polilingue" and "/translate" in status.text:
+            filtered.append(status)
+
+    return filtered
 
 
 #Função que filtra os emojis do texto e transforma-os em código da ascii
@@ -103,8 +104,8 @@ def emojize_flag_code(flag_code):
 
 
 # Função que remove os emojis do texto
-def remove_emoji(text):
-    return emoji.get_emoji_regexp().sub(r'', text.decode('utf8'))
+def remove_emoji(another_text):
+    return emoji.get_emoji_regexp().sub(r'', another_text)
 
 # ========================================================================================================
 
@@ -130,16 +131,16 @@ while True:
    
     if len(mentions_list) != 0:
         last_id = mentions_list[0].id
-    
-    filtered_mentions = filter_mentions(mentions_list)
 
-    for status in filtered_mentions:
-        
+    mentions_list = filter_mentions(mentions_list)
+
+    for status in mentions_list:
+
         original_status = api.get_status(status.in_reply_to_status_id)
-        flags = get_flags_from_mention(status.text)
-
         translation_needed = remove_emoji(original_status.text)
-        print(translation_needed)
+        print("o tweet a ser traduzido:", translation_needed)
+
+        flags = get_flags_from_mention(status.text)
 
         buffer = dict()
         
@@ -155,8 +156,14 @@ while True:
                 buffer[base_language] = translation.text
             
             first_letter, second_letter = emojize_flag_code(flag)
-            # print(first_letter, second_letter)
-            #tweeta com o emoji de bandeirinha e " "
+
+            if len(translation.text) > 273:
+                #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
+                #tweeta o resto assim (to")
+                a = 0
+            else:
+                final_text = first_letter + second_letter + ' "' + translation.text + '"'
+                api.update_status(final_text, in_reply_to_status_id=status.id, auto_populate_reply_metadata=True)
 
             if len(language) > 1:
 
@@ -167,8 +174,14 @@ while True:
                     else:
                         translation = translator.translate(translation_needed, dest=langs)
                         buffer[langs] = translation.text
-                    #tweeta em cadeia com o tweet anterior com o emoji da bandeirinha e " "
-
+                    
+                    if len(translation.text) > 273:
+                        #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
+                        #tweeta o resto assim (to")
+                        a = 0
+                    else:
+                        #tweeta em cadeia com o tweet anterior com o emoji da bandeirinha e " "
+                        a = 0
 
     time.sleep(10)
 
