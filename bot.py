@@ -11,8 +11,7 @@ from dotenv import load_dotenv
 #Chamada do documento json que relaciona cada código com cada língua
 with open('languages.json') as json_file: 
     languages = json.load(json_file)  
-
-
+print(len(languages))
 
 # Função que puxa as ultimas 20 mentions
 def get_mentions(id):
@@ -143,6 +142,7 @@ while True:
         flags = get_flags_from_mention(status.text)
 
         buffer = dict()
+        print(buffer)
         
         for flag in flags:
 
@@ -157,31 +157,31 @@ while True:
             
             first_letter, second_letter = emojize_flag_code(flag)
 
-            if len(translation.text) > 273:
-                #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
-                #tweeta o resto assim (to")
-                a = 0
-            else:
-                final_text = first_letter + second_letter + ' "' + translation.text + '"'
-                api.update_status(final_text, in_reply_to_status_id=status.id, auto_populate_reply_metadata=True)
+            # if len(translation) > 273:
+            #     #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
+            #     #tweeta o resto assim (to")
+            #     a = 0
+            # else:
+            final_text = first_letter + second_letter + ' "' + translation.text + '"'
+            api.update_status(final_text, in_reply_to_status_id=status.id, auto_populate_reply_metadata=True)
 
-            if len(language) > 1:
+            # if len(language) > 1:
 
-                for langs in language[1:]:
+            #     for langs in language[1:]:
                     
-                    if langs in buffer:
-                        translation = buffer[langs]
-                    else:
-                        translation = translator.translate(translation_needed, dest=langs)
-                        buffer[langs] = translation.text
+            #         if langs in buffer:
+            #             translation = buffer[langs]
+            #         else:
+            #             translation = translator.translate(translation_needed, dest=langs)
+            #             buffer[langs] = translation.text
                     
-                    if len(translation.text) > 273:
-                        #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
-                        #tweeta o resto assim (to")
-                        a = 0
-                    else:
-                        #tweeta em cadeia com o tweet anterior com o emoji da bandeirinha e " "
-                        a = 0
+            #         if len(translation.text) > 273:
+            #             #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
+            #             #tweeta o resto assim (to")
+            #             a = 0
+            #         else:
+            #             #tweeta em cadeia com o tweet anterior com o emoji da bandeirinha e " "
+            #             a = 0
 
-    time.sleep(10)
+    time.sleep(15)
 

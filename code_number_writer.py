@@ -47,8 +47,6 @@ with open('languages.json') as json_file:
     languages = json.load(json_file) 
 json_file.close()
 
-print(languages, "\n")
-
 load_dotenv()
 
 consumer_key = os.getenv("key")
@@ -69,9 +67,9 @@ for status in mentions_list:
     flags_list = get_flags_from_mention(status.text)
     
     for number in flags_list:
-        languages.update({number: ["undefined"]})
+        languages.update({number: [""]})
 
 print(languages)
-
+print(len(languages))
 with open('languages.json', 'w') as json_file: 
     json.dump(languages, json_file, indent=4)
