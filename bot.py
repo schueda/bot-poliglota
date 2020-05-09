@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 #Chamada do documento json que relaciona cada código com cada língua
 with open('languages.json') as json_file: 
     languages = json.load(json_file)  
-print(len(languages))
 
 # Função que puxa as ultimas 20 mentions
 def get_mentions(id):
@@ -32,7 +31,7 @@ def filter_mentions(not_filtered_mentions):
     filtered = []
     for status in not_filtered_mentions:
         mention_user = api.get_user(status.user.id)
-        if  not mention_user.screen_name == "bot_polilingue" and "/translate" in status.text:
+        if  not mention_user.screen_name == "bot_poliglota" and "/translate" in status.text:
             filtered.append(status)
 
     return filtered
@@ -106,8 +105,8 @@ def emojize_flag_code(flag_code):
 def remove_emoji(another_text):
     return emoji.get_emoji_regexp().sub(r'', another_text)
 
-# ========================================================================================================
 
+# ========================================================================================================
 
 load_dotenv()
 
@@ -119,7 +118,10 @@ access_token_secret = os.getenv("token_secret")
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
-api = tweepy.API(auth)
+# api = tweepy.API(auth)
+api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+# ========================================================================================================
 
 
 last_id = None
@@ -133,55 +135,91 @@ while True:
 
     mentions_list = filter_mentions(mentions_list)
 
+
     for status in mentions_list:
 
         original_status = api.get_status(status.in_reply_to_status_id)
-        translation_needed = remove_emoji(original_status.text)
-        print("o tweet a ser traduzido:", translation_needed)
+       
+        if original_status.truncated:
+       
+            extended_status = api.get_status(original_status.id, tweet_mode='extended')
+            original_text = extended_status._json['full_text']
+        
+        else:
+            original_text = original_status.text
+
+        
+        translation_needed = remove_emoji(original_text)
+        print("\n================================================")
+        print("o tweet a ser traduzido:", translation_needed, "\n")
 
         flags = get_flags_from_mention(status.text)
 
         buffer = dict()
-        print(buffer)
         
         for flag in flags:
 
             language = get_language(flag)
             base_language = language[0]
-
-            if base_language in buffer:
-                translation = buffer[base_language]
-            else:
-                translation = translator.translate(translation_needed, dest=base_language)
-                buffer[base_language] = translation.text
-            
+            print(base_language)
             first_letter, second_letter = emojize_flag_code(flag)
 
-            # if len(translation) > 273:
-            #     #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
-            #     #tweeta o resto assim (to")
-            #     a = 0
-            # else:
-            final_text = first_letter + second_letter + ' "' + translation.text + '"'
-            api.update_status(final_text, in_reply_to_status_id=status.id, auto_populate_reply_metadata=True)
+            if base_language == "undefined":
 
-            # if len(language) > 1:
+                final_text = "translations for " + first_letter + second_letter + " unavaliable"
+                print(final_text)
 
-            #     for langs in language[1:]:
+            else:
+
+                tweet_to_reply = status
+
+                for langs in language:
                     
-            #         if langs in buffer:
-            #             translation = buffer[langs]
-            #         else:
-            #             translation = translator.translate(translation_needed, dest=langs)
-            #             buffer[langs] = translation.text
+                    if langs in buffer:
+                        translation = buffer[langs]
+                    else:
+                        translated = translator.translate(translation_needed, dest=base_language)
+                        translation = translated.text
+                        buffer[base_language] = translated.text
                     
-            #         if len(translation.text) > 273:
-            #             #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
-            #             #tweeta o resto assim (to")
-            #             a = 0
-            #         else:
-            #             #tweeta em cadeia com o tweet anterior com o emoji da bandeirinha e " "
-            #             a = 0
+                    if len(translation) > 273:
+                        #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
+                        #tweeta o resto assim (to")
+                        a = 0
+                    else:
+                        final_text = first_letter + second_letter + ' "' + translation + '"'
+                        print(final_text)
+                        # tweet_to_reply = api.update_status(final_text, in_reply_to_status_id=tweet_to_reply.id, auto_populate_reply_metadata=True)
 
     time.sleep(15)
 
+
+
+# last_status = api.tweet(texts[0], in...: id)
+# last_id = last_status.id
+
+# for text in texts[1:]:
+#     last_status = api.tweet(text, in...: last_id)
+#     last_id = last_status.id
+
+
+
+# para cada pais
+
+#     textos = []        
+
+#     para cada lingua do pais
+#         traducao = traduzir tuite
+
+#        traducao_bonita = decorar_traducao(texto_quebrado) #adiciona as bandeiras, faz as coisas bonitas
+        
+#         se traducao_bonita tem mais de 280 caracteres:
+#             texto_quebrado = quebrar texto(traducao) # devolve uma lista de textos
+
+#            textos_quebrados_bonits = decorar_traducoes(textos_quebrados_bonits) #adiciona as bandeiras, faz as coisas bonitas
+
+#             textos += textos_quebrados_bonits
+#         senao:
+#              textos.append(traducao_bonita)        
+
+#     tuitar_varios(textos, id do tuite original)
