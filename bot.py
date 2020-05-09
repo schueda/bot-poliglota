@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 #Chamada do documento json que relaciona cada código com cada língua
 with open('languages.json') as json_file: 
-    languages = json.load(json_file)  
+    languages_dict = json.load(json_file)  
 
 # Função que puxa as ultimas 20 mentions
 def get_mentions(id):
@@ -84,7 +84,7 @@ def get_flags_from_mention(mention_text):
 
 #Função que relaciona a flag com a lingua
 def get_language(country):
-    return languages[country]
+    return languages_dict[country]
 
 translator = Translator()
 
@@ -159,28 +159,28 @@ while True:
         
         for flag in flags:
 
-            language = get_language(flag)
-            base_language = language[0]
-            print(base_language)
+            languages = get_language(flag)
+            base_language = languages[0]
+
             first_letter, second_letter = emojize_flag_code(flag)
 
             if base_language == "undefined":
 
                 final_text = "translations for " + first_letter + second_letter + " unavaliable"
-                print(final_text)
+                api.update_status(final_text, in_reply_to_status_id=tweet_to_reply.id, auto_populate_reply_metadata=True)
 
             else:
 
                 tweet_to_reply = status
 
-                for langs in language:
+                for language in languages:
                     
-                    if langs in buffer:
-                        translation = buffer[langs]
+                    if language in buffer:
+                        translation = buffer[language]
                     else:
-                        translated = translator.translate(translation_needed, dest=base_language)
+                        translated = translator.translate(translation_needed, dest=language)
                         translation = translated.text
-                        buffer[base_language] = translated.text
+                        buffer[language] = translated.text
                     
                     if len(translation) > 273:
                         #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
