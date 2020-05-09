@@ -189,8 +189,16 @@ while True:
                     else:
                         final_text = first_letter + second_letter + ' "' + translation + '"'
                         print(final_text)
-                        # tweet_to_reply = api.update_status(final_text, in_reply_to_status_id=tweet_to_reply.id, auto_populate_reply_metadata=True)
-
+                        
+                        try:
+                            tweet_to_reply = api.update_status(final_text, in_reply_to_status_id=tweet_to_reply.id, auto_populate_reply_metadata=True)
+                        
+                        except tweepy.TweepError as error:
+                        
+                            if error.api_code == 187:
+                                print('duplicated message')
+                            else:
+                                raise error
     time.sleep(15)
 
 
