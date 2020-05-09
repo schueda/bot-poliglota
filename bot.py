@@ -12,17 +12,26 @@ from dotenv import load_dotenv
 with open('languages.json') as json_file: 
     languages_dict = json.load(json_file)  
 
-# Função que puxa as ultimas 20 mentions
+# Função que puxa as ultimas mentions e evita erros de conexão
 def get_mentions(id):
     
-    if id != None:
-        print(f"\n----- Puxando mentions desde {id} -----")
-        mentions = api.mentions_timeline(since_id=id)
-    else:
-        print("\n\n----- Puxando todas as mentions -----")
-        mentions = api.mentions_timeline()
+    try:
+        bool_error = False
+        if id != None:
+            print(f"\n----- Puxando mentions desde {id} -----")
+            mentions = api.mentions_timeline(since_id=id)
+        else:
+            print("\n\n----- Puxando todas as mentions -----")
+            mentions = api.mentions_timeline()
     
-    return mentions  
+    except tweepy.TweepError as connect_error:
+        if connect_error.api_code == 500 or connect_error.api_code == 502 or connect_error.api_code == 503 or connect_error.api_code == 504:
+            print("connection error")
+            bool_error = True
+        else:
+            raise connect_error
+    
+    return mentions, bool_error
 
 
 #Função que filtra apenas as mentions uteis
@@ -105,6 +114,21 @@ def emojize_flag_code(flag_code):
 def remove_emoji(another_text):
     return emoji.get_emoji_regexp().sub(r'', another_text)
 
+# Função que tweeta
+def do_tweet(tweet_text, id_to_reply):
+
+    try:
+        id_to_reply = api.update_status(tweet_text, in_reply_to_status_id=id_to_reply.id, auto_populate_reply_metadata=True)
+    
+    except tweepy.TweepError as dup_error:
+    
+        if dup_error.api_code == 187:
+            print('duplicated message')
+        else:
+            raise dup_error
+
+    return id_to_reply
+
 
 # ========================================================================================================
 
@@ -118,26 +142,39 @@ access_token_secret = os.getenv("token_secret")
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
-# api = tweepy.API(auth)
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 # ========================================================================================================
 
 
-last_id = None
+file_mention = open("last_mention", "r")
+last_id = file_mention.read()
+file_mention.close()
+
+if last_id == "None":
+    last_id = None
+
 
 while True:
 
-    mentions_list = get_mentions(last_id)
-   
-    if len(mentions_list) != 0:
-        last_id = mentions_list[0].id
+    mentions_list, error = get_mentions(last_id)
 
+    while error:
+        time.sleep(45)
+        mentions_list, error = get_mentions(last_id)
+    
     mentions_list = filter_mentions(mentions_list)
 
+    if len(mentions_list) != 0:
+        
+        file_mention = open("last_mention", "w")
+        file_mention.write(str(mentions_list[0].id))
+        file_mention.close()
+
+        last_id = int(mentions_list[0].id)
 
     for status in mentions_list:
-
+        
         original_status = api.get_status(status.in_reply_to_status_id)
        
         if original_status.truncated:
@@ -180,54 +217,19 @@ while True:
                     else:
                         translated = translator.translate(translation_needed, dest=language)
                         translation = translated.text
-                        buffer[language] = translated.text
+                        buffer[base_language] = translated.text
                     
                     if len(translation) > 273:
-                        #tweeta os primeiros 273 caracteres assim (xxxx "tex+)
-                        #tweeta o resto assim (to")
-                        a = 0
+
+                        final_text_part1 = first_letter + second_letter + ' "' + translation[:273] + "+"
+                        tweet_to_reply = do_tweet(final_text_part1, tweet_to_reply)
+
+                        final_text_part2 = translation[273:] + '"'
+                        do_tweet(final_text_part2, tweet_to_reply)
+
                     else:
                         final_text = first_letter + second_letter + ' "' + translation + '"'
                         print(final_text)
-                        
-                        try:
-                            tweet_to_reply = api.update_status(final_text, in_reply_to_status_id=tweet_to_reply.id, auto_populate_reply_metadata=True)
-                        
-                        except tweepy.TweepError as error:
-                        
-                            if error.api_code == 187:
-                                print('duplicated message')
-                            else:
-                                raise error
+                        tweet_to_reply = do_tweet(final_text, tweet_to_reply)
+    
     time.sleep(15)
-
-
-
-# last_status = api.tweet(texts[0], in...: id)
-# last_id = last_status.id
-
-# for text in texts[1:]:
-#     last_status = api.tweet(text, in...: last_id)
-#     last_id = last_status.id
-
-
-
-# para cada pais
-
-#     textos = []        
-
-#     para cada lingua do pais
-#         traducao = traduzir tuite
-
-#        traducao_bonita = decorar_traducao(texto_quebrado) #adiciona as bandeiras, faz as coisas bonitas
-        
-#         se traducao_bonita tem mais de 280 caracteres:
-#             texto_quebrado = quebrar texto(traducao) # devolve uma lista de textos
-
-#            textos_quebrados_bonits = decorar_traducoes(textos_quebrados_bonits) #adiciona as bandeiras, faz as coisas bonitas
-
-#             textos += textos_quebrados_bonits
-#         senao:
-#              textos.append(traducao_bonita)        
-
-#     tuitar_varios(textos, id do tuite original)
