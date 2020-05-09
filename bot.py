@@ -25,7 +25,12 @@ def get_mentions(id):
             mentions = api.mentions_timeline()
     
     except tweepy.TweepError as connect_error:
-        if connect_error.api_code == 500 or connect_error.api_code == 502 or connect_error.api_code == 503 or connect_error.api_code == 504:
+        
+        if (connect_error.api_code == 500 or
+            connect_error.api_code == 502 or
+            connect_error.api_code == 503 or
+            connect_error.api_code == 504):
+            
             print("connection error")
             bool_error = True
         else:
@@ -39,8 +44,13 @@ def filter_mentions(not_filtered_mentions):
     
     filtered = []
     for status in not_filtered_mentions:
+
         mention_user = api.get_user(status.user.id)
-        if  not mention_user.screen_name == "bot_poliglota" and "/translate" in status.text:
+
+        if (not mention_user.screen_name == "bot_poliglota" 
+            and "/translate" in status.text 
+            and status.in_reply_to_status_id != None):
+            
             filtered.append(status)
 
     return filtered
@@ -123,7 +133,7 @@ def do_tweet(tweet_text, id_to_reply):
     except tweepy.TweepError as dup_error:
     
         if dup_error.api_code == 187:
-            print('duplicated message')
+            print("duplicated message")
         else:
             raise dup_error
 
@@ -175,7 +185,15 @@ while True:
 
     for status in mentions_list:
         
-        original_status = api.get_status(status.in_reply_to_status_id)
+        try: 
+            original_status = api.get_status(status.in_reply_to_status_id)
+        
+        except tweepy.TweepError as read_error:
+            if read_error.api_code == 179:
+                print("unable to read the tweet")
+                break
+            else:
+                raise read_error
        
         if original_status.truncated:
        
@@ -204,7 +222,7 @@ while True:
             if base_language == "undefined":
 
                 final_text = "translations for " + first_letter + second_letter + " unavaliable"
-                api.update_status(final_text, in_reply_to_status_id=tweet_to_reply.id, auto_populate_reply_metadata=True)
+                do_tweet(final_text, status.id)
 
             else:
 
