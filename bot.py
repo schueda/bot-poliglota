@@ -33,6 +33,7 @@ def get_mentions(id):
             
             print("connection error")
             bool_error = True
+            
         else:
             raise connect_error
     
@@ -69,24 +70,32 @@ def filter_emojis(text):
 
 # Função que separa as bandeiras dos demais emojis
 def filter_flags(ascii_codes):
-    flags = []
+    filtered_flags = []
+    different_flags = []
     
     for cod in ascii_codes:
             if cod >= 127462 and cod <= 127487:
-                flags.append(str(cod))
+                filtered_flags.append(str(cod))
+            
+            if(cod == 127988):
+                different_flags.append(str(cod))
+
     
-    return flags
+    return filtered_flags, different_flags
 
 
 # Função que junta os dois códigos das bandeiras
-def unite_flags(separated_flags):
+def unite_flags(normal_separated_flags, different_separated_flags):
     united_flags = []
     i = 0
     
-    while i < len(separated_flags)-1:
-        united = separated_flags[i] + separated_flags[i+1]
+    while i < len(normal_separated_flags)-1:
+        united = normal_separated_flags[i] + normal_separated_flags[i+1]
         united_flags.append(united)
         i = i + 2
+
+    if len(different_separated_flags) != 0:
+        united_flags.append("127468127463")
     
     return united_flags
 
@@ -95,8 +104,8 @@ def unite_flags(separated_flags):
 def get_flags_from_mention(mention_text):
 
     emojis_in_ascii = filter_emojis(mention_text)
-    pure_divided_flags = filter_flags(emojis_in_ascii)
-    flags = unite_flags(pure_divided_flags)
+    pure_divided_normal_flags, pure_divided_different_flags = filter_flags(emojis_in_ascii)
+    flags = unite_flags(pure_divided_normal_flags, pure_divided_different_flags)
     
     return flags
 
@@ -125,10 +134,13 @@ def remove_emoji(another_text):
     return emoji.get_emoji_regexp().sub(r'', another_text)
 
 # Função que tweeta
-def do_tweet(tweet_text, id_to_reply):
+def do_tweet(tweet_text, id_to_reply, user_from_original_tweet):
 
     try:
-        id_to_reply = api.update_status(tweet_text, in_reply_to_status_id=id_to_reply.id, auto_populate_reply_metadata=True)
+        id_to_reply = api.update_status(tweet_text, 
+        in_reply_to_status_id=id_to_reply.id, 
+        auto_populate_reply_metadata=True,
+        exclude_reply_user_ids = user_from_original_tweet.id)
     
     except tweepy.TweepError as dup_error:
     
@@ -167,6 +179,7 @@ if last_id == "None":
 
 while True:
 
+
     mentions_list, error = get_mentions(last_id)
 
     while error:
@@ -174,6 +187,7 @@ while True:
         mentions_list, error = get_mentions(last_id)
     
     mentions_list = filter_mentions(mentions_list)
+
 
     if len(mentions_list) != 0:
         
@@ -183,10 +197,13 @@ while True:
 
         last_id = int(mentions_list[0].id)
 
+
     for status in mentions_list:
         
+
         try: 
             original_status = api.get_status(status.in_reply_to_status_id)
+            original_user = api.get_user(original_status.user.id)
         
         except tweepy.TweepError as read_error:
             if read_error.api_code == 179:
@@ -195,6 +212,7 @@ while True:
             else:
                 raise read_error
        
+
         if original_status.truncated:
        
             extended_status = api.get_status(original_status.id, tweet_mode='extended')
@@ -205,49 +223,56 @@ while True:
 
         
         translation_needed = remove_emoji(original_text)
-        print("\n================================================")
         print("o tweet a ser traduzido:", translation_needed, "\n")
 
-        flags = get_flags_from_mention(status.text)
 
         buffer = dict()
+
+        flags = get_flags_from_mention(status.text)
         
         for flag in flags:
+
 
             languages = get_language(flag)
             base_language = languages[0]
 
             first_letter, second_letter = emojize_flag_code(flag)
 
+
             if base_language == "undefined":
 
                 final_text = "translations for " + first_letter + second_letter + " unavaliable"
-                do_tweet(final_text, status.id)
+                do_tweet(final_text, status.id, original_user)
 
             else:
 
                 tweet_to_reply = status
 
+
                 for language in languages:
                     
+
                     if language in buffer:
                         translation = buffer[language]
+                    
                     else:
                         translated = translator.translate(translation_needed, dest=language)
                         translation = translated.text
                         buffer[base_language] = translated.text
                     
+
                     if len(translation) > 273:
 
                         final_text_part1 = first_letter + second_letter + ' "' + translation[:273] + "+"
                         tweet_to_reply = do_tweet(final_text_part1, tweet_to_reply)
 
                         final_text_part2 = translation[273:] + '"'
-                        do_tweet(final_text_part2, tweet_to_reply)
+                        do_tweet(final_text_part2, tweet_to_reply, original_user)
 
                     else:
+
                         final_text = first_letter + second_letter + ' "' + translation + '"'
                         print(final_text)
-                        tweet_to_reply = do_tweet(final_text, tweet_to_reply)
+                        tweet_to_reply = do_tweet(final_text, tweet_to_reply, original_user)
     
     time.sleep(15)
