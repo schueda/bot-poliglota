@@ -8,21 +8,56 @@ from googletrans import Translator
 
 from dotenv import load_dotenv
 
+
+# ========================================================================================================
+
+load_dotenv()
+
+consumer_key = os.getenv("key")
+consumer_secret = os.getenv("secret")
+access_token = os.getenv("token")
+access_token_secret = os.getenv("token_secret")
+
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+
+api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+# ========================================================================================================
+
+
 #Chamada do documento json que relaciona cada código com cada língua
 with open('languages.json') as json_file: 
     languages_dict = json.load(json_file)  
 
+
 # Função que puxa as ultimas mentions e evita erros de conexão
 def get_mentions(id):
-    
+    global api
+
     try:
         bool_error = False
         if id != None:
             print(f"\n----- Puxando mentions desde {id} -----")
-            mentions = api.mentions_timeline(since_id=id)
+            
+            try:
+                mentions = api.mentions_timeline(since_id=id)
+
+            except TimeoutError:
+                print("-----------------------------ERA PRA TER TRAVADO-----------------------------")
+                api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+                mentions = api.mentions_timeline(since_id=id)
+                        
         else:
             print("\n\n----- Puxando todas as mentions -----")
-            mentions = api.mentions_timeline()
+
+            try:
+                mentions = api.mentions_timeline()
+
+            except TimeoutError:
+                print("-----------------------------ERA PRA TER TRAVADO-----------------------------")
+                api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+                mentions = api.mentions_timeline()
     
     except tweepy.TweepError as connect_error:
         
@@ -42,11 +77,18 @@ def get_mentions(id):
 
 #Função que filtra apenas as mentions uteis
 def filter_mentions(not_filtered_mentions):
+    global api
     
     filtered = []
     for status in not_filtered_mentions:
+        
+        try:
+            mention_user = api.get_user(status.user.id)
 
-        mention_user = api.get_user(status.user.id)
+        except TimeoutError:
+            print("-----------------------------ERA PRA TER TRAVADO-----------------------------")
+            api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+            mention_user = api.get_user(status.user.id)
 
         if (not mention_user.screen_name == "bot_poliglota" 
             and "/translate" in status.text 
@@ -133,8 +175,10 @@ def emojize_flag_code(flag_code):
 def remove_emoji(another_text):
     return emoji.get_emoji_regexp().sub(r'', another_text)
 
+
 # Função que tweeta
 def do_tweet(tweet_text, id_to_reply, user_from_original_tweet):
+    global api
 
     try:
         id_to_reply = api.update_status(tweet_text, 
@@ -148,25 +192,21 @@ def do_tweet(tweet_text, id_to_reply, user_from_original_tweet):
             print("duplicated message")
         else:
             raise dup_error
+    
+    except TimeoutError:
+        print("-----------------------------ERA PRA TER TRAVADO-----------------------------")
+        api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+        id_to_reply = api.update_status(tweet_text, 
+        in_reply_to_status_id=id_to_reply.id, 
+        auto_populate_reply_metadata=True,
+        exclude_reply_user_ids = user_from_original_tweet.id)
+    
 
     return id_to_reply
 
 
-# ========================================================================================================
-
-load_dotenv()
-
-consumer_key = os.getenv("key")
-consumer_secret = os.getenv("secret")
-access_token = os.getenv("token")
-access_token_secret = os.getenv("token_secret")
-
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_token_secret)
-
-api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-
-# ========================================================================================================
+# ======================================================================================================================
 
 
 file_mention = open("last_mention", "r")
@@ -211,12 +251,28 @@ while True:
                 break
             else:
                 raise read_error
+        
+        except TimeoutError:
+            print("-----------------------------ERA PRA TER TRAVADO-----------------------------")
+            api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+            
+            original_status = api.get_status(status.in_reply_to_status_id)
+            original_user = api.get_user(original_status.user.id)
+
        
 
         if original_status.truncated:
-       
-            extended_status = api.get_status(original_status.id, tweet_mode='extended')
-            original_text = extended_status._json['full_text']
+            
+            try:
+                extended_status = api.get_status(original_status.id, tweet_mode='extended')
+                original_text = extended_status._json['full_text']
+            
+            except TimeoutError:
+                print("-----------------------------ERA PRA TER TRAVADO-----------------------------")
+                api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+                extended_status = api.get_status(original_status.id, tweet_mode='extended')
+                original_text = extended_status._json['full_text']
         
         else:
             original_text = original_status.text
