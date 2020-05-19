@@ -6,17 +6,14 @@ import json
 
 from googletrans import Translator
 
-from dotenv import load_dotenv
-
+from os import environ
 
 # ========================================================================================================
 
-load_dotenv()
-
-consumer_key = os.getenv("key")
-consumer_secret = os.getenv("secret")
-access_token = os.getenv("token")
-access_token_secret = os.getenv("token_secret")
+consumer_key = environ["key"]
+consumer_secret = environ["secret"]
+access_token = environ["token"]
+access_token_secret = environ["token_secret"]
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
@@ -209,12 +206,7 @@ def do_tweet(tweet_text, id_to_reply, user_from_original_tweet):
 # ======================================================================================================================
 
 
-file_mention = open("last_mention", "r")
-last_id = file_mention.read()
-file_mention.close()
-
-if last_id == "None":
-    last_id = None
+last_id = environ["last_id"]
 
 
 while True:
@@ -231,10 +223,7 @@ while True:
 
     if len(mentions_list) != 0:
         
-        file_mention = open("last_mention", "w")
-        file_mention.write(str(mentions_list[0].id))
-        file_mention.close()
-
+        environ["last_id"] = str(mentions_list[0].id)
         last_id = int(mentions_list[0].id)
 
 
