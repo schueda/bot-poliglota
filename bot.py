@@ -14,9 +14,8 @@ consumer_key = environ["key"]
 consumer_secret = environ["secret"]
 access_token = environ["token"]
 access_token_secret = environ["token_secret"]
-last_id = environ["last_id"]
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", last_id, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-print(type(last_id))
+
+
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
@@ -211,6 +210,10 @@ def do_tweet(tweet_text, id_to_reply, user_from_original_tweet):
 
 last_id = environ["last_id"]
 
+if last_id == "":
+    last_id = None
+else:
+    last_id = int(last_id)
 
 while True:
 
