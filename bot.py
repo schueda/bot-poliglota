@@ -14,6 +14,8 @@ consumer_key = environ["key"]
 consumer_secret = environ["secret"]
 access_token = environ["token"]
 access_token_secret = environ["token_secret"]
+last_id = environ["last_id"]
+print(last_id)
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
